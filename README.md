@@ -1,4 +1,4 @@
-# 🧋 CadienTea - Bubble Tea Shop Website
+# 🧋 CadienTea Shop Website
 
 A fully functional e-commerce website for CadienTea Shop.
 
