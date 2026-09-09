@@ -1,22 +1,26 @@
 # 🧋 CadienTea Shop Website
 
-A fully functional e-commerce website for CadienTea Shop.
+A fully functional e-commerce website for CadienTea bubble tea shop.
+
+---
 
 ## 📋 Features
 
-### Customer Features
+### 👤 Customer Features
 - 🧋 Browse products with categories
 - 🛒 Shopping cart system
 - 👤 User registration and login
 - 📦 Order placement with delivery
 - 📱 Responsive design
 
-### Admin Features
+### 👑 Admin Features
 - 📊 Dashboard with statistics
 - 📦 Order management with status updates
 - 🧋 Product management (CRUD)
 - 🏷️ Category management
 - 👤 User management
+
+---
 
 ## 🛠️ Technologies Used
 
@@ -26,56 +30,73 @@ A fully functional e-commerce website for CadienTea Shop.
 - **JavaScript** - Interactive features
 - **XAMPP** - Local development server
 
+---
+
 ## 📂 Project Structure
 
 cadientea/
 ├── admin/ # Admin panel files
+│ ├── index.php # Dashboard
+│ ├── login.php # Admin login
+│ ├── orders.php # Order management
+│ ├── products.php # Product management
+│ ├── categories.php # Category management
+│ └── users.php # User management
 ├── images/ # Product images
 ├── uploads/ # Uploaded images
-├── index.php # Main page
+├── index.php # Main homepage
 ├── login.php # Customer login
 ├── register.php # Customer registration
 ├── cart.php # Shopping cart
 ├── checkout.php # Checkout page
-├── order_success.php  # Order Confirmation
-├── add_to_cart.php     # Add to Cart Handler
-├── process_order.php    # Process Order Handler
-├── remove_from_cart.php #  Remove from Cart
-├── update_cart.php   # Update Cart Quantity
-├── info.php    # User Account Page
-├── success.php   # Login Success Page
-├── logout.php    # Logout Handler
-├── function.php  # Core Functions
-├── validation.php # Validation Functions
-├── db.php  # Database Connection
-├── style.css  # Main Stylesheet
-├── javascript.js  # Main JavaScript
-├── admin_bar.php  # Admin Bar (include file)
-│
-├── README.md  # Project Documentation
-└── LICENSE     # License File (optional)
+├── order_success.php # Order confirmation
+├── add_to_cart.php # Add to cart handler
+├── process_order.php # Process order handler
+├── remove_from_cart.php # Remove from cart
+├── update_cart.php # Update cart quantity
+├── info.php # User account page
+├── success.php # Login success page
+├── logout.php # Logout handler
+├── function.php # Core functions
+├── validation.php # Validation functions
+├── db.php # Database connection
+├── style.css # Main stylesheet
+├── javascript.js # Main JavaScript
+├── admin_bar.php # Admin bar (include file)
+├── README.md # Project documentation
+└── LICENSE # License file
 
+
+---
 
 ## 🚀 Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone https://github.com/JODEAN13/cadientea-shop.git
 
-2. Import the database from the SQL file
-3. Update `db.php` with your credentials
-4. Start XAMPP (Apache and MySQL)
-5. Visit: `http://localhost/cadientea/`
+2. Import the database:
+Open phpMyAdmin
+Create a database named cadientea_db
+Import the SQL file
 
-## 🔑 Default Users
+3. Configure database:
+Update db.php with your database credentials
 
-⚠️ **For security reasons, default credentials are not listed here.**
+4. Run the project:
+Start XAMPP (Apache and MySQL)
+Visit: http://localhost/cadientea/
+
+🔑 Default Users
+⚠️ For security reasons, default credentials are not listed here.
 Please contact the developer for test credentials.
 
 📝 License
 This project is for educational purposes only.
 
-## 👨‍💻 Developer
-
+👨‍💻 Developer
 Jode-An P. Cadiente
-cadientejodean4@gmail.com
+📧 cadientejodean4@gmail.com
+🐙 GitHub: JODEAN13
+
+Sip the glow, love the flow! 🧋
