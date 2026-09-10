@@ -1,5 +1,6 @@
 <?php
 require_once 'function.php';
+require_once 'validation.php';
 requireLogin();
 
 $user = getUserById((int) $_SESSION['user_id']);
@@ -18,12 +19,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($subject) || empty($message)) {
         setFlash('error', 'Please fill in both subject and message.');
     } else {
-        // For now, just show a success message
-        // In a real app, you'd save this to a database table
-        setFlash('success', '✅ Your message has been sent! We\'ll get back to you soon. 🧋');
+        global $conn;
+        $stmt = $conn->prepare("INSERT INTO messages (user_id, subject, message, sender) VALUES (?, ?, ?, 'customer')");
+        $stmt->bind_param("iss", $user['id'], $subject, $message);
+        
+        if ($stmt->execute()) {
+            setFlash('success', '✅ Your message has been sent! We\'ll get back to you soon. 🧋');
+        } else {
+            setFlash('error', 'Failed to send message. Please try again.');
+        }
     }
     redirect('messages.php');
 }
+
+// Get user's messages
+global $conn;
+$stmt = $conn->prepare("
+    SELECT * FROM messages 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC
+");
+$stmt->bind_param("i", $user['id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$messages = $result->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -62,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .messages-banner p { font-size: 0.95rem; color: #5c3a43; }
 
-        .messages-content { max-width: 700px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+        .messages-content { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
 
         .alert {
             padding: 0.85rem 1.1rem;
@@ -80,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 1.25rem;
             padding: 2rem;
             box-shadow: 0 2px 16px rgba(236,0,140,0.05);
+            margin-bottom: 1.5rem;
         }
         .message-card h2 {
             font-family: 'Fredoka', sans-serif;
@@ -123,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 0 3px rgba(236,0,140,0.08);
         }
         .form-group textarea {
-            min-height: 150px;
+            min-height: 120px;
             resize: vertical;
         }
 
@@ -146,29 +166,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 8px 26px rgba(236,0,140,0.4);
         }
 
-        /* Contact Info */
-        .contact-info {
-            background: #fce8f1;
-            border-radius: 1.25rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .contact-info h3 {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1rem;
-            color: #1a0a10;
+        /* Message History */
+        .message-thread {
+            background: #fff;
+            border: 1px solid #f5c6d8;
+            border-radius: 1rem;
+            padding: 1.25rem;
             margin-bottom: 1rem;
         }
-        .contact-item {
+        .message-thread-header {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #fce8f1;
+        }
+        .message-thread-header .subject {
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            color: #1a0a10;
+        }
+        .message-thread-header .date {
+            font-size: 0.75rem;
+            color: #8a4a60;
+        }
+        .message-thread-body {
             font-size: 0.9rem;
             color: #5c3a43;
+            line-height: 1.6;
         }
-        .contact-item .icon {
-            font-size: 1.2rem;
+        .message-thread-body .sender {
+            font-size: 0.75rem;
+            color: #ec008c;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+        .message-reply {
+            background: #fce8f1;
+            border-left: 3px solid #ec008c;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .message-reply .sender {
+            color: #ec008c;
         }
     </style>
 </head>
@@ -187,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="nav-user">
             <a href="cart.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem;">🛒 Cart (<?= getCartCount() ?>)</a>
+            <a href="info.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem;">My Account</a>
             <a href="logout.php" class="btn-logout">Sign Out</a>
         </div>
     </div>
@@ -207,26 +251,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         <?php endif; ?>
 
-        <!-- Contact Info -->
-        <div class="contact-info">
-            <h3>📍 Other ways to reach us</h3>
-            <div class="contact-item">
-                <span class="icon">📞</span>
-                <span>+639930830701</span>
-            </div>
-            <div class="contact-item">
-                <span class="icon">✉️</span>
-                <span>hello@cadientea.com</span>
-            </div>
-            <div class="contact-item">
-                <span class="icon">📍</span>
-                <span>Dumaguete City, Negros Oriental</span>
-            </div>
-        </div>
-
-        <!-- Message Form -->
+        <!-- Send Message Form -->
         <div class="message-card">
-            <h2>Send a Message</h2>
+            <h2>📨 Send a Message</h2>
             <p class="sub">Fill out the form below and we'll get back to you as soon as possible.</p>
             
             <form action="messages.php" method="POST">
@@ -250,6 +277,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn-send">📨 Send Message</button>
             </form>
         </div>
+
+        <!-- Message History -->
+        <?php if (!empty($messages)): ?>
+            <div class="message-card">
+                <h2>📜 Your Message History</h2>
+                <p class="sub">All your previous conversations with us.</p>
+                
+                <?php foreach ($messages as $msg): ?>
+                    <?php if ($msg['parent_id'] === null): /* Only show original messages */ ?>
+                        <div class="message-thread">
+                            <div class="message-thread-header">
+                                <div class="subject"><?= htmlspecialchars($msg['subject']) ?></div>
+                                <div class="date"><?= date('M d, Y h:i A', strtotime($msg['created_at'])) ?></div>
+                            </div>
+                            <div class="message-thread-body">
+                                <div class="sender">You (Customer)</div>
+                                <?= nl2br(htmlspecialchars($msg['message'])) ?>
+                            </div>
+                            
+                            <?php
+                            // Get admin replies
+                            $replyStmt = $conn->prepare("SELECT * FROM messages WHERE parent_id = ? AND sender = 'admin' ORDER BY created_at ASC");
+                            $replyStmt->bind_param("i", $msg['id']);
+                            $replyStmt->execute();
+                            $replies = $replyStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                            ?>
+                            
+                            <?php foreach ($replies as $reply): ?>
+                                <div class="message-reply">
+                                    <div class="sender">CadienTea Support</div>
+                                    <?= nl2br(htmlspecialchars($reply['message'])) ?>
+                                    <div class="date" style="margin-top:0.5rem;"><?= date('M d, Y h:i A', strtotime($reply['created_at'])) ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
     </div>
 </div>

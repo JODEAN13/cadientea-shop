@@ -1,10 +1,15 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
 global $conn;
 $categories = $conn->query("SELECT * FROM categories ORDER BY name")->fetch_all(MYSQLI_ASSOC);
+
+// Count unread messages for sidebar badge
+$unreadMessages = $conn->query("SELECT COUNT(*) as count FROM messages WHERE sender = 'customer' AND is_read = 0")->fetch_assoc()['count'];
+
 $flash = getFlash();
 ?>
 <!DOCTYPE html>
@@ -18,7 +23,8 @@ $flash = getFlash();
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../style.css" />
     <style>
-        /* Same sidebar styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         .admin-wrapper { display: flex; min-height: 100vh; padding-top: 68px; }
         .admin-sidebar {
             width: 260px;
@@ -51,6 +57,14 @@ $flash = getFlash();
         .sidebar-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .sidebar-menu a.active { background: #ec008c; color: #fff; }
         .sidebar-menu a .icon { font-size: 1.2rem; width: 28px; text-align: center; }
+        .sidebar-menu .badge {
+            margin-left: auto;
+            background: #ec008c;
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+        }
         .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1rem 0; }
         .sidebar-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
         .sidebar-footer a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 0.85rem; display: block; padding: 0.4rem 0; }
@@ -115,8 +129,6 @@ $flash = getFlash();
         }
         .category-table tr:hover { background: #fff8fb; }
         
-        .btn-edit { padding: 0.25rem 0.6rem; border-radius: 0.5rem; border: none; cursor: pointer; font-size: 0.7rem; font-weight: 600; background: #dbeafe; color: #1e40af; text-decoration: none; }
-        .btn-edit:hover { background: #bfdbfe; }
         .btn-delete { padding: 0.25rem 0.6rem; border-radius: 0.5rem; border: none; cursor: pointer; font-size: 0.7rem; font-weight: 600; background: #fee2e2; color: #dc2626; }
         .btn-delete:hover { background: #fca5a5; color: #fff; }
         
@@ -162,6 +174,7 @@ $flash = getFlash();
             <li><a href="products.php"><span class="icon">🧋</span> Products</a></li>
             <li><a href="categories.php" class="active"><span class="icon">🏷️</span> Categories</a></li>
             <li><a href="users.php"><span class="icon">👤</span> Users</a></li>
+            <li><a href="messages.php"><span class="icon">💬</span> Messages <?php if ($unreadMessages > 0): ?><span class="badge"><?= $unreadMessages ?></span><?php endif; ?></a></li>
         </ul>
         <hr class="sidebar-divider">
         <div class="sidebar-footer">

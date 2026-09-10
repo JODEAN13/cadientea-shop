@@ -1,6 +1,6 @@
 <?php
 require_once '../function.php';
-require_once '../validation.php';  // ← ADD THIS LINE
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
@@ -40,8 +40,10 @@ $updateStmt = $conn->prepare("UPDATE orders SET order_status = ? WHERE id = ?");
 $updateStmt->bind_param("si", $status, $orderId);
 
 if ($updateStmt->execute()) {
+    // Format status for display (NO HTML tags)
     $statusDisplay = ucwords(str_replace('_', ' ', $status));
-    setFlash('success', '✅ Order #' . htmlspecialchars($order['order_number']) . ' updated to <strong>' . $statusDisplay . '</strong>!');
+    
+    setFlash('success', '✅ Order #' . $order['order_number'] . ' updated to ' . $statusDisplay . '!');
 } else {
     setFlash('error', 'Failed to update order status.');
 }

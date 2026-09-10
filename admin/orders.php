@@ -1,11 +1,11 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
-global $conn;
-
 // Get all orders with user details
+global $conn;
 $sql = "SELECT o.*, u.first_name, u.last_name, u.email, u.phone 
         FROM orders o 
         LEFT JOIN users u ON o.user_id = u.id 
@@ -42,7 +42,6 @@ $flash = getFlash();
             padding-top: 68px;
         }
         
-        /* Sidebar (same as dashboard) */
         .admin-sidebar {
             width: 260px;
             background: #1a0a10;
@@ -53,14 +52,8 @@ $flash = getFlash();
             overflow-y: auto;
             flex-shrink: 0;
         }
-        .admin-sidebar .logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .admin-sidebar .logo img {
-            width: 150px;
-            margin: 0 auto;
-        }
+        .admin-sidebar .logo { text-align: center; margin-bottom: 2rem; }
+        .admin-sidebar .logo img { width: 150px; margin: 0 auto; }
         .admin-sidebar .logo h2 {
             font-family: 'Fredoka', sans-serif;
             font-size: 1.2rem;
@@ -69,10 +62,7 @@ $flash = getFlash();
         }
         .admin-sidebar .logo h2 span { color: #f8b5c2; }
         
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
+        .sidebar-menu { list-style: none; padding: 0; }
         .sidebar-menu li { margin-bottom: 0.3rem; }
         .sidebar-menu a {
             display: flex;
@@ -86,19 +76,9 @@ $flash = getFlash();
             font-size: 0.9rem;
             font-weight: 500;
         }
-        .sidebar-menu a:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-        }
-        .sidebar-menu a.active {
-            background: #ec008c;
-            color: #fff;
-        }
-        .sidebar-menu a .icon {
-            font-size: 1.2rem;
-            width: 28px;
-            text-align: center;
-        }
+        .sidebar-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .sidebar-menu a.active { background: #ec008c; color: #fff; }
+        .sidebar-menu a .icon { font-size: 1.2rem; width: 28px; text-align: center; }
         .sidebar-menu .badge {
             margin-left: auto;
             background: #ec008c;
@@ -108,17 +88,8 @@ $flash = getFlash();
             border-radius: 999px;
         }
         
-        .sidebar-divider {
-            border: none;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            margin: 1rem 0;
-        }
-        
-        .sidebar-footer {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1rem 0; }
+        .sidebar-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
         .sidebar-footer a {
             color: rgba(255,255,255,0.4);
             text-decoration: none;
@@ -201,7 +172,7 @@ $flash = getFlash();
         .order-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 700px;
+            min-width: 800px;
         }
         .order-table th {
             background: #fce8f1;
@@ -212,6 +183,7 @@ $flash = getFlash();
             color: #5c3a43;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            white-space: nowrap;
         }
         .order-table td {
             padding: 0.75rem 1rem;
@@ -236,6 +208,19 @@ $flash = getFlash();
         .status-out_for_delivery { background: #fce4ec; color: #9a3412; }
         .status-completed { background: #d1fae5; color: #065f46; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        /* Order Type Badge */
+        .order-type-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .type-delivery { background: #dbeafe; color: #1e40af; }
+        .type-pickup { background: #d1fae5; color: #065f46; }
         
         .status-select {
             padding: 0.25rem 0.5rem;
@@ -266,18 +251,6 @@ $flash = getFlash();
         }
         .order-detail-link:hover { text-decoration: underline; }
         
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-        }
-        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
-        .empty-state h3 {
-            font-family: 'Fredoka', sans-serif;
-            color: #1a0a10;
-            margin-bottom: 0.5rem;
-        }
-        .empty-state p { color: #8a4a60; }
-        
         .customer-info .name { font-weight: 600; color: #1a0a10; }
         .customer-info .email { color: #8a4a60; font-size: 0.75rem; }
         
@@ -297,16 +270,21 @@ $flash = getFlash();
             transform: translateY(-1px);
         }
         
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state h3 {
+            font-family: 'Fredoka', sans-serif;
+            color: #1a0a10;
+            margin-bottom: 0.5rem;
+        }
+        .empty-state p { color: #8a4a60; }
+        
         @media (max-width: 768px) {
-            .admin-sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                padding: 1rem;
-            }
-            .admin-main {
-                margin-left: 0;
-            }
+            .admin-sidebar { width: 100%; height: auto; position: relative; padding: 1rem; }
+            .admin-main { margin-left: 0; }
             .admin-wrapper { flex-direction: column; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); }
             .admin-header-bar h1 { font-size: 1.4rem; }
@@ -340,7 +318,7 @@ $flash = getFlash();
         
         <ul class="sidebar-menu">
             <li><a href="index.php"><span class="icon">📊</span> Dashboard</a></li>
-            <li><a href="orders.php" class="active"><span class="icon">📦</span> Orders</a></li>
+            <li><a href="orders.php" class="active"><span class="icon">📦</span> Orders <span class="badge"><?= $statusCounts['pending'] ?? 0 ?></span></a></li>
             <li><a href="products.php"><span class="icon">🧋</span> Products</a></li>
             <li><a href="categories.php"><span class="icon">🏷️</span> Categories</a></li>
             <li><a href="users.php"><span class="icon">👤</span> Users</a></li>
@@ -401,6 +379,7 @@ $flash = getFlash();
                         <tr>
                             <th>Order #</th>
                             <th>Customer</th>
+                            <th>Type</th>
                             <th>Total</th>
                             <th>Payment</th>
                             <th>Status</th>
@@ -410,6 +389,7 @@ $flash = getFlash();
                     </thead>
                     <tbody>
                         <?php foreach ($orders as $order): ?>
+                            <?php $isPickup = ($order['order_type'] ?? 'delivery') === 'pickup'; ?>
                             <tr>
                                 <td>
                                     <a href="order_detail.php?order_id=<?= $order['id'] ?>" class="order-detail-link">
@@ -424,6 +404,11 @@ $flash = getFlash();
                                         <div class="email"><?= htmlspecialchars($order['email'] ?? '') ?></div>
                                     </div>
                                 </td>
+                                <td>
+                                    <span class="order-type-badge type-<?= $isPickup ? 'pickup' : 'delivery' ?>">
+                                        <?= $isPickup ? '🏪 Pickup' : '🚚 Delivery' ?>
+                                    </span>
+                                </td>
                                 <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
                                 <td><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></td>
                                 <td>
@@ -431,7 +416,7 @@ $flash = getFlash();
                                         <?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?>
                                     </span>
                                 </td>
-                                <td style="font-size:0.8rem; color:#8a4a60;">
+                                <td style="font-size:0.8rem; color:#8a4a60; white-space:nowrap;">
                                     <?= date('M d, Y', strtotime($order['created_at'])) ?>
                                     <br><small><?= date('h:i A', strtotime($order['created_at'])) ?></small>
                                 </td>

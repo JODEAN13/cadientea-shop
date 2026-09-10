@@ -1,5 +1,6 @@
 <?php
 require_once 'function.php';
+require_once 'validation.php';
 requireLogin();
 
 $user = getUserById((int) $_SESSION['user_id']);
@@ -124,6 +125,18 @@ $fullName = getUserFullName($user);
         .status-completed { background: #d1fae5; color: #065f46; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
 
+        /* Order Type Badge */
+        .order-type-badge {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .type-delivery { background: #dbeafe; color: #1e40af; }
+        .type-pickup { background: #d1fae5; color: #065f46; }
+
         .btn-view-order {
             display: inline-block;
             background: #ec008c;
@@ -199,6 +212,7 @@ $fullName = getUserFullName($user);
         </div>
         <div class="nav-user">
             <a href="cart.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem;">🛒 Cart (<?= getCartCount() ?>)</a>
+            <a href="info.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem;">My Account</a>
             <a href="logout.php" class="btn-logout">Sign Out</a>
         </div>
     </div>
@@ -228,15 +242,21 @@ $fullName = getUserFullName($user);
             </div>
         <?php else: ?>
             <?php foreach ($orders as $order): ?>
+                <?php $isPickup = ($order['order_type'] ?? 'delivery') === 'pickup'; ?>
                 <div class="order-card">
                     <div class="order-card-header">
                         <div>
                             <div class="order-num">#<?= htmlspecialchars($order['order_number']) ?></div>
                             <div class="order-date"><?= date('F j, Y - h:i A', strtotime($order['created_at'])) ?></div>
                         </div>
-                        <span class="order-status status-<?= str_replace(' ', '_', $order['order_status']) ?>">
-                            <?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?>
-                        </span>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                            <span class="order-type-badge type-<?= $isPickup ? 'pickup' : 'delivery' ?>">
+                                <?= $isPickup ? '🏪 Pickup' : '🚚 Delivery' ?>
+                            </span>
+                            <span class="order-status status-<?= str_replace(' ', '_', $order['order_status']) ?>">
+                                <?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?>
+                            </span>
+                        </div>
                     </div>
                     <div class="order-body">
                         <div>
@@ -248,9 +268,9 @@ $fullName = getUserFullName($user);
                             <div class="value"><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></div>
                         </div>
                         <div>
-                            <div class="label">Delivery Address</div>
+                            <div class="label"><?= $isPickup ? 'Pickup Location' : 'Delivery Address' ?></div>
                             <div class="value" style="font-size:0.85rem; font-weight:500;">
-                                <?= htmlspecialchars($order['delivery_address'] ?? 'N/A') ?>
+                                <?= htmlspecialchars($order['order_address'] ?? 'N/A') ?>
                             </div>
                         </div>
                     </div>

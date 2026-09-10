@@ -1,5 +1,6 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
@@ -36,6 +37,7 @@ $itemsStmt->execute();
 $items = $itemsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $flash = getFlash();
+$isPickup = ($order['order_type'] ?? 'delivery') === 'pickup';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,25 +52,74 @@ $flash = getFlash();
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        .admin-page {
-            padding-top: 68px;
-            background: #fff8fb;
-            min-height: 100vh;
-        }
-        .admin-header {
-            background: linear-gradient(135deg, #fce8f1 0%, #f8b5c2 100%);
+        .admin-wrapper { display: flex; min-height: 100vh; padding-top: 68px; }
+        .admin-sidebar {
+            width: 260px;
+            background: #1a0a10;
+            color: #fff;
             padding: 2rem 1.5rem;
-            text-align: center;
+            position: fixed;
+            height: calc(100vh - 68px);
+            overflow-y: auto;
+            flex-shrink: 0;
         }
-        .admin-header h1 {
+        .admin-sidebar .logo { text-align: center; margin-bottom: 2rem; }
+        .admin-sidebar .logo img { width: 150px; margin: 0 auto; }
+        .admin-sidebar .logo h2 {
             font-family: 'Fredoka', sans-serif;
-            font-size: 2rem;
-            color: #1a0a10;
+            font-size: 1.2rem;
+            color: #fff;
+            margin-top: 0.5rem;
         }
-        .admin-content {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
+        .admin-sidebar .logo h2 span { color: #f8b5c2; }
+        
+        .sidebar-menu { list-style: none; padding: 0; }
+        .sidebar-menu li { margin-bottom: 0.3rem; }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 1rem;
+            border-radius: 0.75rem;
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            transition: all 0.15s;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .sidebar-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .sidebar-menu a.active { background: #ec008c; color: #fff; }
+        .sidebar-menu a .icon { font-size: 1.2rem; width: 28px; text-align: center; }
+        .sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1rem 0; }
+        .sidebar-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-footer a {
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: block;
+            padding: 0.4rem 0;
+        }
+        .sidebar-footer a:hover { color: #fff; }
+        
+        .admin-main {
+            margin-left: 260px;
+            flex: 1;
+            background: #fff8fb;
+            min-height: calc(100vh - 68px);
+            padding: 2rem;
+        }
+        .admin-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .admin-header-bar h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.8rem;
+            color: #1a0a10;
         }
         
         .alert {
@@ -103,18 +154,14 @@ $flash = getFlash();
             padding: 0.5rem 0;
             border-bottom: 1px solid #fce8f1;
         }
-        .detail-row:last-child {
-            border-bottom: none;
-        }
+        .detail-row:last-child { border-bottom: none; }
         .detail-label {
-            width: 150px;
+            width: 180px;
             font-weight: 600;
             color: #5c3a43;
             flex-shrink: 0;
         }
-        .detail-value {
-            color: #1a0a10;
-        }
+        .detail-value { color: #1a0a10; }
         
         .status-badge {
             display: inline-block;
@@ -131,6 +178,18 @@ $flash = getFlash();
         .status-out_for_delivery { background: #fce4ec; color: #9a3412; }
         .status-completed { background: #d1fae5; color: #065f46; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        /* Order Type Badge */
+        .order-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .type-delivery { background: #dbeafe; color: #1e40af; }
+        .type-pickup { background: #d1fae5; color: #065f46; }
         
         .item-table {
             width: 100%;
@@ -157,9 +216,7 @@ $flash = getFlash();
             text-decoration: none;
             margin-top: 1rem;
         }
-        .back-link:hover {
-            text-decoration: underline;
-        }
+        .back-link:hover { text-decoration: underline; }
         
         .total-row {
             font-family: 'Fredoka', sans-serif;
@@ -168,14 +225,25 @@ $flash = getFlash();
             color: #ec008c;
         }
         
-        @media (max-width: 600px) {
-            .detail-row {
-                flex-direction: column;
-            }
-            .detail-label {
-                width: 100%;
-                font-size: 0.8rem;
-            }
+        .view-store-btn {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            background: #10b981;
+            color: #fff;
+            border-radius: 999px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .view-store-btn:hover { background: #059669; transform: translateY(-1px); }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar { width: 100%; height: auto; position: relative; padding: 1rem; }
+            .admin-main { margin-left: 0; }
+            .admin-wrapper { flex-direction: column; }
+            .detail-row { flex-direction: column; }
+            .detail-label { width: 100%; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -188,20 +256,39 @@ $flash = getFlash();
             <img src="../images/cadienteamainlogo.png" alt="CadienTea logo" />
         </a>
         <div style="display:flex; align-items:center; gap:1rem;">
-            <span style="font-weight:600; color:#5c3a43;">👑 <?= htmlspecialchars($_SESSION['user_name']) ?></span>
+            <a href="../index.php" class="view-store-btn">👁 View Store</a>
             <a href="../logout.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem; background:#dc2626; box-shadow:none;">Logout</a>
         </div>
     </div>
 </nav>
 
 <!-- PAGE -->
-<div class="admin-page">
-    <div class="admin-header">
-        <h1>📋 Order #<?= htmlspecialchars($order['order_number']) ?></h1>
-        <p>View order details</p>
-    </div>
-
-    <div class="admin-content">
+<div class="admin-wrapper">
+    <aside class="admin-sidebar">
+        <div class="logo">
+            <img src="../images/cadienteamainlogo.png" alt="CadienTea" />
+            <h2>Cadien<span>Tea</span></h2>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.php"><span class="icon">📊</span> Dashboard</a></li>
+            <li><a href="orders.php" class="active"><span class="icon">📦</span> Orders</a></li>
+            <li><a href="products.php"><span class="icon">🧋</span> Products</a></li>
+            <li><a href="categories.php"><span class="icon">🏷️</span> Categories</a></li>
+            <li><a href="users.php"><span class="icon">👤</span> Users</a></li>
+        </ul>
+        <hr class="sidebar-divider">
+        <div class="sidebar-footer">
+            <a href="../index.php">👁 View Store</a>
+            <a href="../logout.php">🚪 Logout</a>
+        </div>
+    </aside>
+    
+    <main class="admin-main">
+        
+        <div class="admin-header-bar">
+            <h1>📋 Order #<?= htmlspecialchars($order['order_number']) ?></h1>
+            <a href="../index.php" class="view-store-btn">👁 View Store</a>
+        </div>
         
         <?php if ($flash): ?>
             <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>">
@@ -209,7 +296,36 @@ $flash = getFlash();
             </div>
         <?php endif; ?>
 
-        <!-- Order Details -->
+        <!-- Order Status & Type -->
+        <div class="detail-card">
+            <h2>📊 Order Status</h2>
+            <div class="detail-row">
+                <span class="detail-label">Order Type</span>
+                <span class="detail-value">
+                    <span class="order-type-badge type-<?= $isPickup ? 'pickup' : 'delivery' ?>">
+                        <?= $isPickup ? '🏪 Pickup' : '🚚 Delivery' ?>
+                    </span>
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Current Status</span>
+                <span class="detail-value">
+                    <span class="status-badge status-<?= str_replace(' ', '_', $order['order_status']) ?>">
+                        <?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?>
+                    </span>
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Method</span>
+                <span class="detail-value"><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Order Date</span>
+                <span class="detail-value"><?= date('F j, Y h:i A', strtotime($order['created_at'])) ?></span>
+            </div>
+        </div>
+
+        <!-- Customer Information -->
         <div class="detail-card">
             <h2>👤 Customer Information</h2>
             <div class="detail-row">
@@ -225,8 +341,8 @@ $flash = getFlash();
                 <span class="detail-value"><?= htmlspecialchars($order['phone'] ?? 'Not provided') ?></span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Delivery Address</span>
-                <span class="detail-value"><?= htmlspecialchars($order['delivery_address']) ?></span>
+                <span class="detail-label"><?= $isPickup ? 'Pickup Location' : 'Delivery Address' ?></span>
+                <span class="detail-value"><?= htmlspecialchars($order['order_address'] ?? 'N/A') ?></span>
             </div>
         </div>
 
@@ -260,8 +376,14 @@ $flash = getFlash();
                         <td>₱<?= number_format($order['subtotal'], 2) ?></td>
                     </tr>
                     <tr>
-                        <td colspan="4" style="text-align:right; font-weight:600;">Delivery Fee:</td>
-                        <td>₱<?= number_format($order['delivery_fee'], 2) ?></td>
+                        <td colspan="4" style="text-align:right; font-weight:600;"><?= $isPickup ? 'Pickup Fee:' : 'Delivery Fee:' ?></td>
+                        <td>
+                            <?php if ($isPickup): ?>
+                                <span style="color:#059669; font-weight:700;">FREE</span>
+                            <?php else: ?>
+                                ₱<?= number_format($order['delivery_fee'], 2) ?>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                     <tr>
                         <td colspan="4" style="text-align:right; font-weight:700; font-size:1.1rem; color:#ec008c;">Total:</td>
@@ -271,29 +393,9 @@ $flash = getFlash();
             </table>
         </div>
 
-        <!-- Order Status -->
-        <div class="detail-card">
-            <h2>📊 Order Status</h2>
-            <div class="detail-row">
-                <span class="detail-label">Current Status</span>
-                <span class="detail-value">
-                    <span class="status-badge status-<?= str_replace(' ', '_', $order['order_status']) ?>">
-                        <?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?>
-                    </span>
-                </span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Payment Method</span>
-                <span class="detail-value"><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Order Date</span>
-                <span class="detail-value"><?= date('F j, Y h:i A', strtotime($order['created_at'])) ?></span>
-            </div>
-        </div>
-
         <!-- Actions -->
-        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <div class="detail-card">
+            <h2>⚙️ Update Status</h2>
             <form action="update_status.php" method="POST" style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
                 <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
                 <select name="status" class="status-select" style="padding:0.5rem 1rem; border-radius:0.75rem; border:1px solid #f5c6d8; font-family:'Fredoka', sans-serif;">
@@ -310,7 +412,7 @@ $flash = getFlash();
         </div>
 
         <a href="orders.php" class="back-link">← Back to Orders</a>
-    </div>
+    </main>
 </div>
 
 </body>

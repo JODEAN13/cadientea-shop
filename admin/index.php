@@ -1,19 +1,6 @@
 <?php
 require_once '../function.php';
-
-// If not logged in, redirect to admin login
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
-
-// If logged in but not admin, show error
-if (($_SESSION['user_role'] ?? '') !== 'admin') {
-    setFlash('error', 'You do not have admin access.');
-    redirect('../index.php');
-}
-
-// If logged in and admin, continue
-// ... rest of your admin dashboard code
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
@@ -41,6 +28,10 @@ $stats['total_users'] = $result->fetch_assoc()['count'];
 // Total revenue
 $result = $conn->query("SELECT SUM(total_amount) as total FROM orders WHERE order_status = 'completed'");
 $stats['revenue'] = $result->fetch_assoc()['total'] ?? 0;
+
+// Unread messages
+$result = $conn->query("SELECT COUNT(*) as count FROM messages WHERE sender = 'customer' AND is_read = 0");
+$stats['unread_messages'] = $result->fetch_assoc()['count'];
 
 // Recent orders
 $recentOrders = $conn->query("
@@ -216,7 +207,7 @@ $flash = getFlash();
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -242,12 +233,6 @@ $flash = getFlash();
             color: #8a4a60;
             font-weight: 500;
         }
-        .stat-card .stat-change {
-            font-size: 0.8rem;
-            margin-top: 0.3rem;
-        }
-        .stat-card .stat-change.positive { color: #059669; }
-        .stat-card .stat-change.negative { color: #dc2626; }
         
         /* Recent Orders */
         .recent-orders {
@@ -295,6 +280,18 @@ $flash = getFlash();
         .status-out_for_delivery { background: #fce4ec; color: #9a3412; }
         .status-completed { background: #d1fae5; color: #065f46; }
         .status-cancelled { background: #fee2e2; color: #991b1b; }
+        
+        /* Order Type Badge */
+        .order-type-badge {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .type-delivery { background: #dbeafe; color: #1e40af; }
+        .type-pickup { background: #d1fae5; color: #065f46; }
         
         .view-all-link {
             display: inline-block;
@@ -396,10 +393,11 @@ $flash = getFlash();
         
         <ul class="sidebar-menu">
             <li><a href="index.php" class="active"><span class="icon">📊</span> Dashboard</a></li>
-            <li><a href="orders.php"><span class="icon">📦</span> Orders <span class="badge"><?= $stats['pending_orders'] ?? 0 ?></span></a></li>
+            <li><a href="orders.php"><span class="icon">📦</span> Orders <?php if ($stats['pending_orders'] > 0): ?><span class="badge"><?= $stats['pending_orders'] ?></span><?php endif; ?></a></li>
             <li><a href="products.php"><span class="icon">🧋</span> Products</a></li>
             <li><a href="categories.php"><span class="icon">🏷️</span> Categories</a></li>
             <li><a href="users.php"><span class="icon">👤</span> Users</a></li>
+            <li><a href="messages.php"><span class="icon">💬</span> Messages <?php if ($stats['unread_messages'] > 0): ?><span class="badge"><?= $stats['unread_messages'] ?></span><?php endif; ?></a></li>
         </ul>
         
         <hr class="sidebar-divider">
@@ -444,6 +442,10 @@ $flash = getFlash();
                 <div class="icon">➕</div>
                 <div class="label">Add Product</div>
             </a>
+            <a href="messages.php" class="quick-action">
+                <div class="icon">💬</div>
+                <div class="label">Messages</div>
+            </a>
             <a href="../index.php" class="quick-action">
                 <div class="icon">👁</div>
                 <div class="label">View Store</div>
@@ -477,6 +479,11 @@ $flash = getFlash();
                 <div class="stat-number"><?= $stats['total_users'] ?></div>
                 <div class="stat-label">Customers</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-icon">💬</div>
+                <div class="stat-number" style="color:#ec008c;"><?= $stats['unread_messages'] ?></div>
+                <div class="stat-label">Unread Messages</div>
+            </div>
         </div>
         
         <!-- Recent Orders -->
@@ -491,6 +498,7 @@ $flash = getFlash();
                         <tr>
                             <th>Order #</th>
                             <th>Customer</th>
+                            <th>Type</th>
                             <th>Total</th>
                             <th>Status</th>
                             <th>Date</th>
@@ -498,10 +506,20 @@ $flash = getFlash();
                     </thead>
                     <tbody>
                         <?php foreach ($recentOrders as $order): ?>
+                            <?php $isPickup = ($order['order_type'] ?? 'delivery') === 'pickup'; ?>
                             <tr>
-                                <td><a href="order_detail.php?order_id=<?= $order['id'] ?>" style="color:#ec008c; font-weight:600; text-decoration:none;">#<?= htmlspecialchars($order['order_number']) ?></a></td>
+                                <td>
+                                    <a href="order_detail.php?order_id=<?= $order['id'] ?>" style="color:#ec008c; font-weight:600; text-decoration:none;">
+                                        #<?= htmlspecialchars($order['order_number']) ?>
+                                    </a>
+                                </td>
                                 <td><?= htmlspecialchars($order['first_name'] ?? '') . ' ' . htmlspecialchars($order['last_name'] ?? '') ?></td>
-                                <td>₱<?= number_format($order['total_amount'], 2) ?></td>
+                                <td>
+                                    <span class="order-type-badge type-<?= $isPickup ? 'pickup' : 'delivery' ?>">
+                                        <?= $isPickup ? '🏪 Pickup' : '🚚 Delivery' ?>
+                                    </span>
+                                </td>
+                                <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
                                 <td><span class="status-badge status-<?= str_replace(' ', '_', $order['order_status']) ?>"><?= str_replace('_', ' ', htmlspecialchars($order['order_status'])) ?></span></td>
                                 <td style="font-size:0.8rem; color:#8a4a60;"><?= date('M d, Y', strtotime($order['created_at'])) ?></td>
                             </tr>

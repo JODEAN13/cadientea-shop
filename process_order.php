@@ -23,13 +23,13 @@ if (empty($cartItems)) {
 
 // Get form data
 $phone = sanitize($_POST['phone'] ?? '');
-$deliveryType = sanitize($_POST['delivery_type'] ?? 'delivery');
-$deliveryAddress = sanitize($_POST['delivery_address'] ?? '');
+$orderType = sanitize($_POST['delivery_type'] ?? 'delivery');
+$orderAddress = sanitize($_POST['delivery_address'] ?? '');
 $paymentMethod = sanitize($_POST['payment_method'] ?? '');
 
-// Validate delivery type
-if (!in_array($deliveryType, ['delivery', 'pickup'])) {
-    $deliveryType = 'delivery';
+// Validate order type
+if (!in_array($orderType, ['delivery', 'pickup'])) {
+    $orderType = 'delivery';
 }
 
 // Validate
@@ -41,8 +41,7 @@ if (empty($phone)) {
     $errors['phone'] = 'Please enter a valid phone number.';
 }
 
-// Only require delivery address if delivery is selected
-if ($deliveryType === 'delivery' && empty($deliveryAddress)) {
+if ($orderType === 'delivery' && empty($orderAddress)) {
     $errors['delivery_address'] = 'Delivery address is required.';
 }
 
@@ -57,17 +56,17 @@ if (!empty($errors)) {
 
 // Calculate totals
 $subtotal = getCartTotal();
-$deliveryFee = ($deliveryType === 'delivery') ? 50 : 0;
+$deliveryFee = ($orderType === 'delivery') ? 50 : 0;
 $total = $subtotal + $deliveryFee;
 
-// If pickup, set delivery address to store location
-if ($deliveryType === 'pickup') {
-    $deliveryAddress = 'PICKUP - CadienTea Main Branch, Dumaguete City, Negros Oriental';
+// If pickup, set order_address to store location
+if ($orderType === 'pickup') {
+    $orderAddress = 'PICKUP - CadienTea Main Branch, Dumaguete City, Negros Oriental';
 }
 
-// Create order with delivery type
+// Create order
 $userId = $_SESSION['user_id'];
-$orderId = createOrderWithType($userId, $cartItems, $subtotal, $deliveryFee, $total, $paymentMethod, $deliveryAddress, $deliveryType);
+$orderId = createOrder($userId, $cartItems, $subtotal, $deliveryFee, $total, $paymentMethod, $orderAddress, $orderType);
 
 if (!$orderId) {
     setFlash('error', 'Failed to place order. Please try again.');

@@ -1,5 +1,6 @@
 <?php
 require_once 'function.php';
+require_once 'validation.php';
 requireLogin();
 
 $orderId = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
@@ -17,7 +18,7 @@ if (!$order || $order['user_id'] != $_SESSION['user_id']) {
 }
 
 $flash = getFlash();
-$isPickup = ($order['delivery_type'] ?? 'delivery') === 'pickup';
+$isPickup = ($order['order_type'] ?? 'delivery') === 'pickup';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -286,12 +287,12 @@ $isPickup = ($order['delivery_type'] ?? 'delivery') === 'pickup';
                 <span class="label">Payment</span>
                 <span><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></span>
             </div>
-            <?php if (!$isPickup): ?>
-                <div class="order-detail-row">
-                    <span class="label">Delivery Address</span>
-                    <span><?= htmlspecialchars($order['delivery_address']) ?></span>
-                </div>
-            <?php endif; ?>
+            
+            <!-- Order Address (works for both pickup & delivery) -->
+            <div class="order-detail-row">
+                <span class="label"><?= $isPickup ? 'Pickup Location' : 'Delivery Address' ?></span>
+                <span><?= htmlspecialchars($order['order_address'] ?? 'N/A') ?></span>
+            </div>
         </div>
 
         <div class="success-actions">
