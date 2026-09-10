@@ -1,5 +1,6 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
@@ -22,6 +23,12 @@ if (!$product) {
     setFlash('error', 'Product not found.');
     redirect('products.php');
 }
+
+// Get existing sizes
+$stmt = $conn->prepare("SELECT * FROM product_sizes WHERE product_id = ? ORDER BY price ASC");
+$stmt->bind_param("i", $productId);
+$stmt->execute();
+$existingSizes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Get categories
 $categories = $conn->query("SELECT id, name FROM categories ORDER BY name")->fetch_all(MYSQLI_ASSOC);
@@ -105,7 +112,7 @@ $old = $old ?: $product;
             border-radius: 1.25rem;
             border: 1px solid #f5c6d8;
             padding: 2rem;
-            max-width: 600px;
+            max-width: 700px;
             box-shadow: 0 2px 16px rgba(236,0,140,0.05);
         }
         .form-group { margin-bottom: 1.25rem; }
@@ -138,9 +145,88 @@ $old = $old ?: $product;
         .form-group .hint { font-size: 0.75rem; color: #8a4a60; margin-top: 0.2rem; }
         .field-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.2rem; }
         
-        .btn-submit { background: #ec008c; color: #fff; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 1rem; padding: 0.7rem 2rem; border: none; border-radius: 999px; cursor: pointer; transition: all 0.15s; }
+        .sizes-section {
+            background: #fce8f1;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .sizes-section h3 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            color: #1a0a10;
+            margin-bottom: 1rem;
+        }
+        .size-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            align-items: center;
+        }
+        .size-row input {
+            padding: 0.6rem 0.9rem;
+            border: 1.5px solid #f5c6d8;
+            border-radius: 0.5rem;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.9rem;
+            background: #fff;
+            outline: none;
+        }
+        .size-row input:focus { border-color: #ec008c; }
+        .btn-remove-size {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.9rem;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .btn-remove-size:hover { background: #fca5a5; color: #fff; }
+        .btn-add-size {
+            background: #ec008c;
+            color: #fff;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.6rem 1.25rem;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.15s;
+            margin-top: 0.5rem;
+        }
+        .btn-add-size:hover { background: #c40075; }
+        
+        .btn-submit {
+            background: #ec008c;
+            color: #fff;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 0.7rem 2rem;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
         .btn-submit:hover { background: #c40075; transform: translateY(-1px); }
-        .btn-cancel { background: transparent; color: #5c3a43; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 1rem; padding: 0.7rem 2rem; border: 2px solid #f5c6d8; border-radius: 999px; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.15s; }
+        .btn-cancel {
+            background: transparent;
+            color: #5c3a43;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.7rem 2rem;
+            border: 2px solid #f5c6d8;
+            border-radius: 999px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.15s;
+        }
         .btn-cancel:hover { background: #fce8f1; }
         
         .current-image {
@@ -225,6 +311,7 @@ $old = $old ?: $product;
                     </div>
                 <?php endif; ?>
                 
+                <!-- Product Name -->
                 <div class="form-group">
                     <label for="name">Product Name *</label>
                     <input type="text" id="name" name="name" value="<?= htmlspecialchars($old['name'] ?? '') ?>" required>
@@ -233,11 +320,13 @@ $old = $old ?: $product;
                     <?php endif; ?>
                 </div>
                 
+                <!-- Description -->
                 <div class="form-group">
                     <label for="description">Description</label>
                     <textarea id="description" name="description"><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
                 </div>
                 
+                <!-- Category -->
                 <div class="form-group">
                     <label for="category_id">Category</label>
                     <select id="category_id" name="category_id">
@@ -250,11 +339,13 @@ $old = $old ?: $product;
                     </select>
                 </div>
                 
+                <!-- Tag -->
                 <div class="form-group">
                     <label for="tag">Tag</label>
                     <input type="text" id="tag" name="tag" value="<?= htmlspecialchars($old['tag'] ?? '') ?>" placeholder="Best Seller">
                 </div>
                 
+                <!-- Status -->
                 <div class="form-group">
                     <label for="status">Status</label>
                     <select id="status" name="status">
@@ -263,6 +354,7 @@ $old = $old ?: $product;
                     </select>
                 </div>
                 
+                <!-- Image -->
                 <div class="form-group">
                     <label for="image">New Image (optional)</label>
                     <input type="file" id="image" name="image" accept="image/*">
@@ -270,6 +362,33 @@ $old = $old ?: $product;
                     <?php if (isset($errors['image'])): ?>
                         <div class="field-error"><?= htmlspecialchars($errors['image']) ?></div>
                     <?php endif; ?>
+                </div>
+                
+                <!-- ── PRODUCT SIZES ── -->
+                <div class="sizes-section">
+                    <h3>📏 Product Sizes & Prices</h3>
+                    <p style="font-size: 0.8rem; color: #8a4a60; margin-bottom: 1rem;">Edit sizes and prices for this product</p>
+                    
+                    <div id="sizesContainer">
+                        <?php if (!empty($existingSizes)): ?>
+                            <?php foreach ($existingSizes as $size): ?>
+                                <div class="size-row">
+                                    <input type="hidden" name="size_ids[]" value="<?= $size['id'] ?>">
+                                    <input type="text" name="sizes[]" placeholder="Size (e.g., Regular)" value="<?= htmlspecialchars($size['size']) ?>" required>
+                                    <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" value="<?= $size['price'] ?>" required>
+                                    <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="size-row">
+                                <input type="text" name="sizes[]" placeholder="Size (e.g., Regular)" value="Regular" required>
+                                <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" value="89.00" required>
+                                <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <button type="button" class="btn-add-size" onclick="addSize()">+ Add Another Size</button>
                 </div>
                 
                 <div style="display:flex; gap:1rem; margin-top:1.5rem; flex-wrap:wrap;">
@@ -280,6 +399,29 @@ $old = $old ?: $product;
         </div>
     </main>
 </div>
+
+<script>
+    function addSize() {
+        const container = document.getElementById('sizesContainer');
+        const row = document.createElement('div');
+        row.className = 'size-row';
+        row.innerHTML = `
+            <input type="text" name="sizes[]" placeholder="Size (e.g., Medium)" required>
+            <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" required>
+            <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+        `;
+        container.appendChild(row);
+    }
+    
+    function removeSize(button) {
+        const container = document.getElementById('sizesContainer');
+        if (container.children.length > 1) {
+            button.closest('.size-row').remove();
+        } else {
+            alert('At least one size is required.');
+        }
+    }
+</script>
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';
 requireLogin();
 requireAdmin();
 
@@ -24,7 +25,6 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../style.css" />
     <style>
-        /* Same sidebar styles */
         .admin-wrapper { display: flex; min-height: 100vh; padding-top: 68px; }
         .admin-sidebar {
             width: 260px;
@@ -40,7 +40,6 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
         .admin-sidebar .logo img { width: 150px; margin: 0 auto; }
         .admin-sidebar .logo h2 { font-family: 'Fredoka', sans-serif; font-size: 1.2rem; color: #fff; margin-top: 0.5rem; }
         .admin-sidebar .logo h2 span { color: #f8b5c2; }
-        
         .sidebar-menu { list-style: none; padding: 0; }
         .sidebar-menu li { margin-bottom: 0.3rem; }
         .sidebar-menu a {
@@ -85,7 +84,7 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
             border-radius: 1.25rem;
             border: 1px solid #f5c6d8;
             padding: 2rem;
-            max-width: 600px;
+            max-width: 700px;
             box-shadow: 0 2px 16px rgba(236,0,140,0.05);
         }
         .form-group { margin-bottom: 1.25rem; }
@@ -118,16 +117,64 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
             box-shadow: 0 0 0 3px rgba(236,0,140,0.08);
         }
         .form-group textarea { min-height: 100px; resize: vertical; }
-        .form-group .hint {
-            font-size: 0.75rem;
-            color: #8a4a60;
-            margin-top: 0.2rem;
+        .form-group .hint { font-size: 0.75rem; color: #8a4a60; margin-top: 0.2rem; }
+        .field-error { font-size: 0.8rem; color: #dc2626; margin-top: 0.2rem; }
+        
+        /* ── SIZE INPUTS ── */
+        .sizes-section {
+            background: #fce8f1;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
         }
-        .field-error {
-            font-size: 0.8rem;
+        .sizes-section h3 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            color: #1a0a10;
+            margin-bottom: 1rem;
+        }
+        .size-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            align-items: center;
+        }
+        .size-row input {
+            padding: 0.6rem 0.9rem;
+            border: 1.5px solid #f5c6d8;
+            border-radius: 0.5rem;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 0.9rem;
+            background: #fff;
+            outline: none;
+        }
+        .size-row input:focus { border-color: #ec008c; }
+        .btn-remove-size {
+            background: #fee2e2;
             color: #dc2626;
-            margin-top: 0.2rem;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.9rem;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.15s;
         }
+        .btn-remove-size:hover { background: #fca5a5; color: #fff; }
+        .btn-add-size {
+            background: #ec008c;
+            color: #fff;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.6rem 1.25rem;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.15s;
+            margin-top: 0.5rem;
+        }
+        .btn-add-size:hover { background: #c40075; }
         
         .btn-submit {
             background: #ec008c;
@@ -168,17 +215,7 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
         .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         
-        .view-store-btn {
-            display: inline-block;
-            padding: 0.4rem 1rem;
-            background: #10b981;
-            color: #fff;
-            border-radius: 999px;
-            text-decoration: none;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.15s;
-        }
+        .view-store-btn { display: inline-block; padding: 0.4rem 1rem; background: #10b981; color: #fff; border-radius: 999px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.15s; }
         .view-store-btn:hover { background: #059669; transform: translateY(-1px); }
         
         @media (max-width: 768px) {
@@ -186,6 +223,7 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
             .admin-main { margin-left: 0; }
             .admin-wrapper { flex-direction: column; }
             .form-card { padding: 1.25rem; }
+            .size-row { grid-template-columns: 1fr 1fr auto; }
         }
     </style>
 </head>
@@ -241,19 +279,22 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
             <form action="save_product.php" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
                 
+                <!-- Product Name -->
                 <div class="form-group">
                     <label for="name">Product Name *</label>
-                    <input type="text" id="name" name="name" value="<?= htmlspecialchars($old['name'] ?? '') ?>" required>
+                    <input type="text" id="name" name="name" value="<?= htmlspecialchars($old['name'] ?? '') ?>" placeholder="e.g., Brown Sugar Tiger" required>
                     <?php if (isset($errors['name'])): ?>
                         <div class="field-error"><?= htmlspecialchars($errors['name']) ?></div>
                     <?php endif; ?>
                 </div>
                 
+                <!-- Description -->
                 <div class="form-group">
                     <label for="description">Description</label>
-                    <textarea id="description" name="description"><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
+                    <textarea id="description" name="description" placeholder="Describe your product..."><?= htmlspecialchars($old['description'] ?? '') ?></textarea>
                 </div>
                 
+                <!-- Category -->
                 <div class="form-group">
                     <label for="category_id">Category</label>
                     <select id="category_id" name="category_id">
@@ -266,12 +307,14 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
                     </select>
                 </div>
                 
+                <!-- Tag -->
                 <div class="form-group">
                     <label for="tag">Tag (e.g., Best Seller, New)</label>
                     <input type="text" id="tag" name="tag" value="<?= htmlspecialchars($old['tag'] ?? '') ?>" placeholder="Best Seller">
                     <div class="hint">Optional: Add a tag to highlight this product</div>
                 </div>
                 
+                <!-- Status -->
                 <div class="form-group">
                     <label for="status">Status</label>
                     <select id="status" name="status">
@@ -280,6 +323,7 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
                     </select>
                 </div>
                 
+                <!-- Image -->
                 <div class="form-group">
                     <label for="image">Product Image</label>
                     <input type="file" id="image" name="image" accept="image/*">
@@ -287,6 +331,28 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
                     <?php if (isset($errors['image'])): ?>
                         <div class="field-error"><?= htmlspecialchars($errors['image']) ?></div>
                     <?php endif; ?>
+                </div>
+                
+                <!-- ── PRODUCT SIZES ── -->
+                <div class="sizes-section">
+                    <h3>📏 Product Sizes & Prices</h3>
+                    <p style="font-size: 0.8rem; color: #8a4a60; margin-bottom: 1rem;">Add sizes and prices for this product (e.g., Regular, Large)</p>
+                    
+                    <div id="sizesContainer">
+                        <!-- Default sizes -->
+                        <div class="size-row">
+                            <input type="text" name="sizes[]" placeholder="Size (e.g., Regular)" value="Regular" required>
+                            <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" value="89.00" required>
+                            <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+                        </div>
+                        <div class="size-row">
+                            <input type="text" name="sizes[]" placeholder="Size (e.g., Large)" value="Large" required>
+                            <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" value="109.00" required>
+                            <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="btn-add-size" onclick="addSize()">+ Add Another Size</button>
                 </div>
                 
                 <div style="display:flex; gap:1rem; margin-top:1.5rem; flex-wrap:wrap;">
@@ -297,6 +363,29 @@ unset($_SESSION['product_errors'], $_SESSION['product_old']);
         </div>
     </main>
 </div>
+
+<script>
+    function addSize() {
+        const container = document.getElementById('sizesContainer');
+        const row = document.createElement('div');
+        row.className = 'size-row';
+        row.innerHTML = `
+            <input type="text" name="sizes[]" placeholder="Size (e.g., Medium)" required>
+            <input type="number" name="prices[]" placeholder="Price (₱)" step="0.01" min="0" required>
+            <button type="button" class="btn-remove-size" onclick="removeSize(this)">✕</button>
+        `;
+        container.appendChild(row);
+    }
+    
+    function removeSize(button) {
+        const container = document.getElementById('sizesContainer');
+        if (container.children.length > 1) {
+            button.closest('.size-row').remove();
+        } else {
+            alert('At least one size is required.');
+        }
+    }
+</script>
 
 </body>
 </html>

@@ -17,6 +17,7 @@ if (!$order || $order['user_id'] != $_SESSION['user_id']) {
 }
 
 $flash = getFlash();
+$isPickup = ($order['delivery_type'] ?? 'delivery') === 'pickup';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,21 +30,14 @@ $flash = getFlash();
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <style>
-        .success-page {
-            min-height: 100vh;
-            padding-top: 68px;
-            background: #fff8fb;
-        }
+        .success-page { min-height: 100vh; padding-top: 68px; background: #fff8fb; }
         .success-content {
             max-width: 700px;
             margin: 0 auto;
             padding: 3rem 1.5rem 5rem;
             text-align: center;
         }
-        .success-icon {
-            font-size: 5rem;
-            margin-bottom: 1rem;
-        }
+        .success-icon { font-size: 5rem; margin-bottom: 1rem; }
         .success-content h1 {
             font-family: 'Fredoka', sans-serif;
             font-size: 2.2rem;
@@ -63,6 +57,45 @@ $flash = getFlash();
             color: #5c3a43;
             margin-bottom: 2rem;
             font-size: 1.05rem;
+        }
+        
+        /* Pickup/Delivery Badge */
+        .delivery-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 999px;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .delivery-badge.delivery {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .delivery-badge.pickup {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .pickup-reminder {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .pickup-reminder h3 {
+            font-family: 'Fredoka', sans-serif;
+            color: #166534;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+        .pickup-reminder p {
+            color: #166534;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
         }
         
         .order-details {
@@ -99,7 +132,7 @@ $flash = getFlash();
             flex-wrap: wrap;
             justify-content: center;
         }
-        .btn-primary {
+        .btn-primary-custom {
             display: inline-block;
             background: #ec008c;
             color: #fff;
@@ -112,10 +145,10 @@ $flash = getFlash();
             box-shadow: 0 6px 20px rgba(236,0,140,0.3);
             transition: transform 0.15s;
         }
-        .btn-primary:hover {
+        .btn-primary-custom:hover {
             transform: translateY(-2px);
         }
-        .btn-outline {
+        .btn-outline-custom {
             display: inline-block;
             background: transparent;
             color: #ec008c;
@@ -128,7 +161,7 @@ $flash = getFlash();
             text-decoration: none;
             transition: background 0.15s;
         }
-        .btn-outline:hover {
+        .btn-outline-custom:hover {
             background: #fce8f1;
         }
         
@@ -151,13 +184,6 @@ $flash = getFlash();
             background: #fef3c7;
             color: #92400e;
         }
-        
-        @media (max-width: 600px) {
-            .order-details { padding: 1rem; }
-            .success-actions { flex-direction: column; }
-            .success-actions .btn-primary,
-            .success-actions .btn-outline { text-align: center; }
-        }
     </style>
 </head>
 <body>
@@ -169,12 +195,11 @@ $flash = getFlash();
             <img src="images/cadienteamainlogo.png" alt="CadienTea logo" />
         </a>
         <div class="nav-links">
-            <a href="index.php#menu">Menu</a>
-            <a href="index.php#about">About</a>
-            <a href="index.php#community">Community</a>
+            <a href="menu.php">Menu</a>
+            <a href="about.php">About</a>
+            <a href="community.php">Community</a>
         </div>
         <div style="display:flex; align-items:center; gap:1rem;">
-            <span style="font-weight:600; color:#5c3a43;">Hi, <?= htmlspecialchars($_SESSION['user_name']) ?>!</span>
             <a href="info.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem;">My Account</a>
             <a href="logout.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem; background:#dc2626; box-shadow:none;">Logout</a>
         </div>
@@ -194,7 +219,32 @@ $flash = getFlash();
         <div class="success-icon">🎉</div>
         <h1>Order Confirmed!</h1>
         <p class="order-number">Order #<strong><?= htmlspecialchars($order['order_number']) ?></strong></p>
+        
+        <!-- Delivery Type Badge -->
+        <?php if ($isPickup): ?>
+            <div class="delivery-badge pickup">🏪 PICKUP ORDER</div>
+        <?php else: ?>
+            <div class="delivery-badge delivery">🚚 DELIVERY ORDER</div>
+        <?php endif; ?>
+        
         <p>Thank you for your order! We'll start preparing your bubble teas right away. 🧋</p>
+
+        <?php if ($isPickup): ?>
+            <!-- Pickup Reminder -->
+            <div class="pickup-reminder">
+                <h3>🏪 Pickup Instructions</h3>
+                <p><strong>📍 Location:</strong> CadienTea Main Branch, Dumaguete City, Negros Oriental</p>
+                <p><strong>🕐 Store Hours:</strong></p>
+                <p style="margin-left: 1rem;">
+                    Mon–Fri: 7:00 AM – 8:00 PM<br>
+                    Saturday: 8:00 AM – 9:00 PM<br>
+                    Sunday: 9:00 AM – 6:00 PM
+                </p>
+                <p style="margin-top: 0.75rem; font-style: italic;">
+                    💡 We'll notify you when your order is ready for pickup!
+                </p>
+            </div>
+        <?php endif; ?>
 
         <div class="order-details">
             <h2>📋 Order Summary</h2>
@@ -205,7 +255,7 @@ $flash = getFlash();
                         <?= htmlspecialchars($item['product_name']) ?>
                         <small style="color:#8a4a60;"> (<?= htmlspecialchars($item['size']) ?>) × <?= $item['quantity'] ?></small>
                     </span>
-                    <span>₱<?= number_format($item['subtotal'], 2) ?></span>
+                    <span>₱<?= number_format($item['unit_price'] * $item['quantity'], 2) ?></span>
                 </div>
             <?php endforeach; ?>
             
@@ -214,8 +264,14 @@ $flash = getFlash();
                 <span>₱<?= number_format($order['subtotal'], 2) ?></span>
             </div>
             <div class="order-detail-row">
-                <span class="label">Delivery Fee</span>
-                <span>₱<?= number_format($order['delivery_fee'], 2) ?></span>
+                <span class="label"><?= $isPickup ? 'Pickup Fee' : 'Delivery Fee' ?></span>
+                <span>
+                    <?php if ($isPickup): ?>
+                        <span style="color:#059669; font-weight:700;">FREE</span>
+                    <?php else: ?>
+                        ₱<?= number_format($order['delivery_fee'], 2) ?>
+                    <?php endif; ?>
+                </span>
             </div>
             <div class="order-detail-row" style="font-weight:700; font-size:1.1rem; border-top:2px solid #f5c6d8; padding-top:0.75rem;">
                 <span>Total</span>
@@ -228,17 +284,19 @@ $flash = getFlash();
             </div>
             <div class="order-detail-row">
                 <span class="label">Payment</span>
-                <span><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash on Delivery')) ?></span>
+                <span><?= str_replace('_', ' ', htmlspecialchars($order['payment_method'] ?? 'Cash')) ?></span>
             </div>
-            <div class="order-detail-row">
-                <span class="label">Delivery Address</span>
-                <span><?= htmlspecialchars($order['delivery_address']) ?></span>
-            </div>
+            <?php if (!$isPickup): ?>
+                <div class="order-detail-row">
+                    <span class="label">Delivery Address</span>
+                    <span><?= htmlspecialchars($order['delivery_address']) ?></span>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="success-actions">
-            <a href="index.php#menu" class="btn-primary">Order More 🧋</a>
-            <a href="info.php" class="btn-outline">View My Orders</a>
+            <a href="menu.php" class="btn-primary-custom">Order More 🧋</a>
+            <a href="purchases.php" class="btn-outline-custom">View My Orders</a>
         </div>
     </div>
 </div>

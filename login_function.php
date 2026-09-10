@@ -48,4 +48,13 @@ loginUser($user);
 $fullName = getUserFullName($user);
 setFlash('success', 'Welcome back, ' . htmlspecialchars($fullName) . '! 🧋');
 
-redirect('success.php');
+// ── REDIRECT BASED ON USER ROLE ──────────────────────────────────────────────
+// Check if the user is an admin
+if (($user['role'] ?? '') === 'admin') {
+    // Admin goes to admin dashboard
+    redirect('admin/index.php');
+} else {
+    // Customer goes to success page
+    redirect('success.php');
+}
+?>

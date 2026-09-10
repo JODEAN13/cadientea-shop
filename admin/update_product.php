@@ -15,6 +15,13 @@ if (!hash_equals($_SESSION['csrf_token'] ?? '', $submittedToken)) {
     redirect('products.php');
 }
 
+$productId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+
+if ($productId <= 0) {
+    setFlash('error', 'Invalid product ID.');
+    redirect('products.php');
+}
+
 // Get form data
 $name = sanitize($_POST['name'] ?? '');
 $description = sanitize($_POST['description'] ?? '');
@@ -25,6 +32,7 @@ $status = sanitize($_POST['status'] ?? 'available');
 // Get sizes and prices
 $sizes = $_POST['sizes'] ?? [];
 $prices = $_POST['prices'] ?? [];
+$sizeIds = $_POST['size_ids'] ?? [];
 
 // Validate
 $errors = [];
@@ -39,20 +47,8 @@ if (!empty($tag) && strlen($tag) > 50) {
     $errors['tag'] = 'Tag must not exceed 50 characters.';
 }
 
-// Validate sizes
 if (empty($sizes) || empty($prices)) {
     $errors['sizes'] = 'At least one size is required.';
-} else {
-    foreach ($sizes as $index => $size) {
-        if (empty(trim($size))) {
-            $errors['sizes'] = 'Size name cannot be empty.';
-            break;
-        }
-        if (!isset($prices[$index]) || !is_numeric($prices[$index]) || $prices[$index] < 0) {
-            $errors['sizes'] = 'Please enter a valid price for all sizes.';
-            break;
-        }
-    }
 }
 
 if (!empty($_FILES['image']['name'])) {
@@ -67,18 +63,14 @@ if (!empty($_FILES['image']['name'])) {
 
 if (!empty($errors)) {
     $_SESSION['product_errors'] = $errors;
-    $_SESSION['product_old'] = [
-        'name' => $name, 
-        'description' => $description, 
-        'category_id' => $category_id, 
-        'tag' => $tag, 
-        'status' => $status
-    ];
-    redirect('add_product.php');
+    $_SESSION['product_old'] = ['name' => $name, 'description' => $description, 'category_id' => $category_id, 'tag' => $tag, 'status' => $status];
+    redirect('edit_product.php?id=' . $productId);
 }
 
+global $conn;
+
 // Handle image upload
-$imagePath = '';
+$imagePath = null;
 if (!empty($_FILES['image']['name'])) {
     $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
     $filename = 'product_' . time() . '_' . uniqid() . '.' . $ext;
@@ -87,19 +79,26 @@ if (!empty($_FILES['image']['name'])) {
     $imagePath = 'images/' . $filename;
 }
 
-// Insert product
-global $conn;
-$stmt = $conn->prepare("INSERT INTO products (name, description, category_id, image, tag, status) VALUES (?, ?, ?, ?, ?, ?)");
-$stmt->bind_param("ssisss", $name, $description, $category_id, $imagePath, $tag, $status);
+// Update product
+if ($imagePath) {
+    $stmt = $conn->prepare("UPDATE products SET name = ?, description = ?, category_id = ?, image = ?, tag = ?, status = ? WHERE id = ?");
+    $stmt->bind_param("ssisssi", $name, $description, $category_id, $imagePath, $tag, $status, $productId);
+} else {
+    $stmt = $conn->prepare("UPDATE products SET name = ?, description = ?, category_id = ?, tag = ?, status = ? WHERE id = ?");
+    $stmt->bind_param("ssissi", $name, $description, $category_id, $tag, $status, $productId);
+}
 
 if (!$stmt->execute()) {
-    setFlash('error', 'Failed to add product. Please try again.');
+    setFlash('error', 'Failed to update product.');
     redirect('products.php');
 }
 
-$productId = $conn->insert_id;
+// Delete all existing sizes for this product
+$stmt = $conn->prepare("DELETE FROM product_sizes WHERE product_id = ?");
+$stmt->bind_param("i", $productId);
+$stmt->execute();
 
-// Insert sizes
+// Insert new sizes
 foreach ($sizes as $index => $size) {
     $size = sanitize($size);
     $price = (float)$prices[$index];
@@ -111,6 +110,6 @@ foreach ($sizes as $index => $size) {
     }
 }
 
-setFlash('success', '✅ Product "' . $name . '" added successfully with ' . count($sizes) . ' size(s)!');
+setFlash('success', '✅ Product "' . $name . '" updated successfully with ' . count($sizes) . ' size(s)!');
 redirect('products.php');
 ?>

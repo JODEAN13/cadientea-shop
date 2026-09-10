@@ -1,5 +1,6 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';  // ← ADD THIS LINE
 requireLogin();
 requireAdmin();
 

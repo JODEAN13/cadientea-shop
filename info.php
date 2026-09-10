@@ -7,13 +7,13 @@ $user = getUserById((int) $_SESSION['user_id']);
 $flash = getFlash();
 
 if (!$user) {
-    // User no longer exists in the DB — force logout
     logoutUser();
     redirect('login.php');
 }
 
 $fullName = getUserFullName($user);
 $orders = getUserOrders($user['id']);
+$cartCount = getCartCount();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +52,7 @@ $orders = getUserOrders($user['id']);
         }
         .info-banner p { font-size: 0.95rem; color: #5c3a43; }
 
-        .info-content { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+        .info-content { max-width: 900px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
         .alert {
             padding: 0.85rem 1.1rem;
@@ -63,6 +63,56 @@ $orders = getUserOrders($user['id']);
         }
         .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        /* ── QUICK ACTIONS GRID ── */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .quick-action-card {
+            background: #fff;
+            border: 1px solid #f5c6d8;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            text-align: center;
+            text-decoration: none;
+            color: #1a0a10;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .quick-action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(236,0,140,0.12);
+        }
+        .quick-action-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .quick-action-card h3 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        .quick-action-card p {
+            font-size: 0.8rem;
+            color: #8a4a60;
+            margin: 0;
+        }
+        .quick-action-card .badge-count {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: #ec008c;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            min-width: 20px;
+        }
 
         .info-card {
             background: #fff;
@@ -180,16 +230,16 @@ $orders = getUserOrders($user['id']);
         .order-table th { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid #f5c6d8; font-family: 'Fredoka', sans-serif; color: #5c3a43; }
         .order-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #fce8f1; }
         .order-table tr:hover { background: #fff8fb; }
-        .text-muted { color: #8a4a60; }
-        .text-center { text-align: center; }
         .empty-state { padding: 2rem; text-align: center; color: #8a4a60; }
 
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
+            .quick-actions-grid { grid-template-columns: 1fr; }
             .info-card { padding: 1.25rem; }
             .info-label { width: 100px; font-size: 0.75rem; }
             .info-row { flex-wrap: wrap; }
-            .order-table { font-size: 0.75rem; }
-            .order-table th, .order-table td { padding: 0.3rem 0.4rem; }
+        }
+        @media (max-width: 500px) {
+            .quick-actions-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -202,11 +252,17 @@ $orders = getUserOrders($user['id']);
             <img src="images/cadienteamainlogo.png" alt="CadienTea logo" />
         </a>
         <div class="nav-links">
-            <a href="index.php#menu">Menu</a>
-            <a href="index.php#about">About</a>
-            <a href="index.php#community">Community</a>
+            <a href="menu.php">Menu</a>
+            <a href="about.php">About</a>
+            <a href="community.php">Community</a>
         </div>
         <div class="nav-user">
+            <a href="cart.php" class="btn-primary" style="font-size:0.85rem; padding:0.4rem 1rem; position:relative;">
+                🛒 Cart
+                <?php if ($cartCount > 0): ?>
+                    <span style="background:#dc2626; color:#fff; border-radius:50%; padding:0.1rem 0.4rem; font-size:0.7rem; margin-left:0.2rem;"><?= $cartCount ?></span>
+                <?php endif; ?>
+            </a>
             <a href="logout.php" class="btn-logout">Sign Out</a>
         </div>
     </div>
@@ -227,12 +283,41 @@ $orders = getUserOrders($user['id']);
             </div>
         <?php endif; ?>
 
+        <!-- ── QUICK ACTIONS GRID ── -->
+        <div class="quick-actions-grid">
+            <!-- CART -->
+            <a href="cart.php" class="quick-action-card">
+                <div class="icon">🛒</div>
+                <h3>My Cart</h3>
+                <p>View items in your cart</p>
+                <?php if ($cartCount > 0): ?>
+                    <span class="badge-count"><?= $cartCount ?></span>
+                <?php endif; ?>
+            </a>
+
+            <!-- MY PURCHASES -->
+            <a href="purchases.php" class="quick-action-card">
+                <div class="icon">📦</div>
+                <h3>My Purchases</h3>
+                <p>View your order history</p>
+                <?php if (count($orders) > 0): ?>
+                    <span class="badge-count"><?= count($orders) ?></span>
+                <?php endif; ?>
+            </a>
+
+            <!-- MESSAGES -->
+            <a href="messages.php" class="quick-action-card">
+                <div class="icon">💬</div>
+                <h3>Messages</h3>
+                <p>Contact the seller</p>
+            </a>
+        </div>
+
         <!-- Profile Overview Card -->
         <div class="info-card">
             <div class="info-card-header">
                 <h2>👤 Profile Overview</h2>
             </div>
-
             <div class="user-header">
                 <div class="avatar-circle">
                     <?= htmlspecialchars(mb_strtoupper(mb_substr($user['first_name'], 0, 1))) ?>
@@ -253,7 +338,6 @@ $orders = getUserOrders($user['id']);
             <div class="info-card-header">
                 <h2>📋 Account Details</h2>
             </div>
-
             <div class="info-row">
                 <span class="info-label">First Name</span>
                 <span class="info-value"><?= htmlspecialchars($user['first_name']) ?></span>
@@ -293,9 +377,9 @@ $orders = getUserOrders($user['id']);
         <!-- Order History Card -->
         <div class="info-card">
             <div class="info-card-header">
-                <h2>📦 Order History</h2>
+                <h2>📦 Recent Orders</h2>
+                <a href="purchases.php" class="btn-action btn-action-outline" style="font-size:0.8rem; padding:0.4rem 1rem;">View All</a>
             </div>
-
             <?php if (!empty($orders)): ?>
                 <table class="order-table">
                     <thead>
@@ -307,7 +391,7 @@ $orders = getUserOrders($user['id']);
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($orders as $order): ?>
+                        <?php foreach (array_slice($orders, 0, 5) as $order): ?>
                             <tr>
                                 <td><strong>#<?= htmlspecialchars($order['order_number']) ?></strong></td>
                                 <td>₱<?= number_format($order['total_amount'], 2) ?></td>
@@ -325,7 +409,7 @@ $orders = getUserOrders($user['id']);
                 <div class="empty-state">
                     <p style="font-size:1.5rem; margin-bottom:0.5rem;">🧋</p>
                     <p>You haven't placed any orders yet.</p>
-                    <a href="index.php#menu" class="btn-action btn-action-primary" style="margin-top:1rem; display:inline-block;">Order Now</a>
+                    <a href="menu.php" class="btn-action btn-action-primary" style="margin-top:1rem; display:inline-block;">Order Now</a>
                 </div>
             <?php endif; ?>
         </div>
@@ -333,11 +417,13 @@ $orders = getUserOrders($user['id']);
         <!-- Actions Card -->
         <div class="info-card">
             <div class="info-card-header">
-                <h2>⚙️ Actions</h2>
+                <h2>⚙️ Quick Actions</h2>
             </div>
             <div class="action-row">
-                <a href="index.php#menu" class="btn-action btn-action-primary">🧋 Order Boba</a>
-                <a href="success.php" class="btn-action btn-action-outline">← Back to Dashboard</a>
+                <a href="menu.php" class="btn-action btn-action-primary">🧋 Order Boba</a>
+                <a href="cart.php" class="btn-action btn-action-outline">🛒 View Cart</a>
+                <a href="purchases.php" class="btn-action btn-action-outline">📦 My Purchases</a>
+                <a href="messages.php" class="btn-action btn-action-outline">💬 Messages</a>
                 <a href="logout.php" class="btn-action btn-action-danger">Sign Out</a>
             </div>
         </div>

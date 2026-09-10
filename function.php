@@ -403,4 +403,58 @@ function getOrderItems(int $orderId): array {
     $result = $stmt->get_result();
     return $result->fetch_all(MYSQLI_ASSOC);
 }
+
+/**
+ * Create order in database with delivery type
+ */
+function createOrderWithType(int $userId, array $cartItems, float $subtotal, float $deliveryFee, float $total, string $paymentMethod, string $deliveryAddress, string $deliveryType = 'delivery'): ?int {
+    global $conn;
+    
+    // Generate order number
+    $orderNumber = 'CT-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+    
+    // Insert order with delivery_type
+    $stmt = $conn->prepare("
+        INSERT INTO orders (
+            user_id, 
+            order_number, 
+            subtotal, 
+            delivery_fee, 
+            total_amount, 
+            payment_method, 
+            order_status, 
+            delivery_address,
+            delivery_type,
+            created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, NOW())
+    ");
+    $stmt->bind_param("isddssss", $userId, $orderNumber, $subtotal, $deliveryFee, $total, $paymentMethod, $deliveryAddress, $deliveryType);
+    
+    if (!$stmt->execute()) {
+        error_log("Order creation failed: " . $stmt->error);
+        return null;
+    }
+    
+    $orderId = $conn->insert_id;
+    
+    // Insert order items
+    foreach ($cartItems as $item) {
+        $itemSubtotal = $item['price'] * $item['quantity'];
+        $stmt2 = $conn->prepare("
+            INSERT INTO order_items (
+                order_id, 
+                product_id, 
+                product_name, 
+                size, 
+                quantity, 
+                unit_price
+            ) VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $stmt2->bind_param("iissid", $orderId, $item['product_id'], $item['product_name'], $item['size'], $item['quantity'], $item['price']);
+        $stmt2->execute();
+    }
+    
+    return $orderId;
+}
+
 ?>

@@ -78,6 +78,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Guest');
             padding: 0.8rem 2rem; border-radius: 999px;
             box-shadow: 0 4px 18px rgba(0,0,0,0.12);
             transition: transform 0.15s;
+            text-decoration: none;
         }
         .btn-white-solid:hover { transform: translateY(-2px); }
         .btn-clear {
@@ -87,6 +88,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Guest');
             padding: 0.8rem 2rem; border-radius: 999px;
             border: 2px solid rgba(255,255,255,0.7);
             transition: background 0.15s;
+            text-decoration: none;
         }
         .btn-clear:hover { background: rgba(255,255,255,0.15); }
 
@@ -159,7 +161,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Guest');
     <?php endif; ?>
     <p>Your account is ready. Explore our menu, track your orders, or manage your profile below.</p>
     <div class="success-btns">
-        <a href="index.php#menu" class="btn-white-solid">Browse Our Menu</a>
+        <a href="menu.php" class="btn-white-solid">Browse Our Menu</a>
         <a href="info.php" class="btn-clear">My Account Info</a>
     </div>
 </section>
@@ -169,7 +171,8 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Guest');
     <div class="quick-links-inner">
         <h2>What would you like to do?</h2>
         <div class="cards-row">
-            <a href="index.php#menu" class="quick-card">
+            <!-- Changed from index.php#menu to menu.php -->
+            <a href="menu.php" class="quick-card">
                 <div class="card-icon">🧋</div>
                 <h3>Order Boba</h3>
                 <p>Browse our full menu of signature bubble teas.</p>
@@ -179,15 +182,11 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Guest');
                 <h3>My Profile</h3>
                 <p>View and manage your account information.</p>
             </a>
-            <a href="index.php#community" class="quick-card">
+            <!-- Changed from index.php#community to community.php -->
+            <a href="community.php" class="quick-card">
                 <div class="card-icon">💬</div>
                 <h3>Community</h3>
                 <p>See what our regulars are saying about us.</p>
-            </a>
-            <a href="logout.php" class="quick-card">
-                <div class="card-icon">🚪</div>
-                <h3>Sign Out</h3>
-                <p>Safely log out of your CadienTea account.</p>
             </a>
         </div>
     </div>

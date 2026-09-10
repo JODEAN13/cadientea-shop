@@ -1,9 +1,8 @@
 <?php
 require_once 'function.php';
-require_once 'validation.php';  // ← Required for sanitize() function
+require_once 'validation.php';
 requireLogin();
 
-// Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('cart.php');
 }
@@ -22,12 +21,18 @@ if (empty($cartItems)) {
     redirect('cart.php');
 }
 
-// Get and sanitize form data
+// Get form data
 $phone = sanitize($_POST['phone'] ?? '');
+$deliveryType = sanitize($_POST['delivery_type'] ?? 'delivery');
 $deliveryAddress = sanitize($_POST['delivery_address'] ?? '');
 $paymentMethod = sanitize($_POST['payment_method'] ?? '');
 
-// Validate form data
+// Validate delivery type
+if (!in_array($deliveryType, ['delivery', 'pickup'])) {
+    $deliveryType = 'delivery';
+}
+
+// Validate
 $errors = [];
 
 if (empty($phone)) {
@@ -36,7 +41,8 @@ if (empty($phone)) {
     $errors['phone'] = 'Please enter a valid phone number.';
 }
 
-if (empty($deliveryAddress)) {
+// Only require delivery address if delivery is selected
+if ($deliveryType === 'delivery' && empty($deliveryAddress)) {
     $errors['delivery_address'] = 'Delivery address is required.';
 }
 
@@ -51,22 +57,27 @@ if (!empty($errors)) {
 
 // Calculate totals
 $subtotal = getCartTotal();
-$deliveryFee = 50; // Fixed delivery fee
+$deliveryFee = ($deliveryType === 'delivery') ? 50 : 0;
 $total = $subtotal + $deliveryFee;
 
-// Create order in database
+// If pickup, set delivery address to store location
+if ($deliveryType === 'pickup') {
+    $deliveryAddress = 'PICKUP - CadienTea Main Branch, Dumaguete City, Negros Oriental';
+}
+
+// Create order with delivery type
 $userId = $_SESSION['user_id'];
-$orderId = createOrder($userId, $cartItems, $subtotal, $deliveryFee, $total, $paymentMethod, $deliveryAddress);
+$orderId = createOrderWithType($userId, $cartItems, $subtotal, $deliveryFee, $total, $paymentMethod, $deliveryAddress, $deliveryType);
 
 if (!$orderId) {
     setFlash('error', 'Failed to place order. Please try again.');
     redirect('checkout.php');
 }
 
-// Clear the cart
+// Clear cart
 clearCart();
 
-// Set success message and redirect
+// Redirect to success page
 setFlash('success', 'Your order has been placed successfully! 🎉');
 redirect('order_success.php?order_id=' . $orderId);
 ?>

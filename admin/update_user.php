@@ -1,5 +1,6 @@
 <?php
 require_once '../function.php';
+require_once '../validation.php';  // ← ADD THIS LINE
 requireLogin();
 requireAdmin();
 
@@ -29,20 +30,17 @@ if ($userId <= 0 || empty($firstName) || empty($lastName) || empty($email)) {
 
 global $conn;
 
-// Update user
 if (!empty($password)) {
-    // Update with new password
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     $stmt = $conn->prepare("UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ?, role = ?, password = ? WHERE id = ?");
     $stmt->bind_param("sssssssi", $firstName, $lastName, $email, $phone, $address, $role, $hashedPassword, $userId);
 } else {
-    // Update without changing password
     $stmt = $conn->prepare("UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ?, role = ? WHERE id = ?");
     $stmt->bind_param("ssssssi", $firstName, $lastName, $email, $phone, $address, $role, $userId);
 }
 
 if ($stmt->execute()) {
-    setFlash('success', '✅ User "' . $firstName . ' ' . $lastName . '" updated successfully!');
+    setFlash('success', '✅ User updated successfully!');
 } else {
     setFlash('error', 'Failed to update user.');
 }

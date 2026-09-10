@@ -274,32 +274,51 @@ $flash = getFlash();
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($products as $product): ?>
-                            <tr>
-                                <td>
-                                    <img src="../<?= htmlspecialchars($product['image'] ?? 'images/default-boba.jpg') ?>" 
-                                         alt="<?= htmlspecialchars($product['name']) ?>" 
-                                         class="product-img"
-                                         onerror="this.src='https://via.placeholder.com/60/ec008c/ffffff?text=🍧'">
-                                </td>
-                                <td><strong><?= htmlspecialchars($product['name']) ?></strong></td>
-                                <td><?= htmlspecialchars($product['category_name'] ?? 'Uncategorized') ?></td>
-                                <td>
-                                    <span class="status-badge status-<?= $product['status'] ?? 'available' ?>">
-                                        <?= htmlspecialchars($product['status'] ?? 'available') ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="edit_product.php?id=<?= $product['id'] ?>" class="btn-edit">✏️ Edit</a>
-                                    <form action="delete_product.php" method="POST" style="display:inline;" 
-                                          onsubmit="return confirm('Delete this product?');">
-                                        <input type="hidden" name="id" value="<?= $product['id'] ?>">
-                                        <button type="submit" class="btn-delete">🗑️ Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
+    <?php foreach ($products as $product): ?>
+        <?php 
+        // Get sizes for this product
+        $stmt = $conn->prepare("SELECT * FROM product_sizes WHERE product_id = ? ORDER BY price ASC");
+        $stmt->bind_param("i", $product['id']);
+        $stmt->execute();
+        $sizes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        ?>
+        <tr>
+            <td>
+                <img src="../<?= htmlspecialchars($product['image'] ?? 'images/default-boba.jpg') ?>" 
+                     alt="<?= htmlspecialchars($product['name']) ?>" 
+                     class="product-img"
+                     onerror="this.src='https://via.placeholder.com/60/ec008c/ffffff?text=🍧'">
+            </td>
+            <td>
+                <strong><?= htmlspecialchars($product['name']) ?></strong>
+                <?php if (!empty($sizes)): ?>
+                    <div style="font-size: 0.75rem; color: #8a4a60; margin-top: 0.3rem;">
+                        <?php 
+                        $sizeList = [];
+                        foreach ($sizes as $size) {
+                            $sizeList[] = htmlspecialchars($size['size']) . ' (₱' . number_format($size['price'], 2) . ')';
+                        }
+                        echo implode(' • ', $sizeList);
+                        ?>
+                    </div>
+                <?php endif; ?>
+            </td>
+            <td><?= htmlspecialchars($product['category_name'] ?? 'Uncategorized') ?></td>
+            <td>
+                <span class="status-badge status-<?= $product['status'] ?? 'available' ?>">
+                    <?= htmlspecialchars($product['status'] ?? 'available') ?>
+                </span>
+            </td>
+            <td>
+                <a href="edit_product.php?id=<?= $product['id'] ?>" class="btn-edit">✏️ Edit</a>
+                <form action="delete_product.php" method="POST" style="display:inline;" onsubmit="return confirm('Delete this product?');">
+                    <input type="hidden" name="id" value="<?= $product['id'] ?>">
+                    <button type="submit" class="btn-delete">🗑️ Delete</button>
+                </form>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+</tbody>
                 </table>
             </div>
         <?php endif; ?>
