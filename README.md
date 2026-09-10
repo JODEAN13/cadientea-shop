@@ -112,14 +112,14 @@ Start XAMPP (Apache and MySQL)
 Visit: http://localhost/cadientea/
 
 🗄️ Database Tables
-Table	Purpose
-users	Customer and admin accounts
-categories	Product categories
-products	Product listings
-product_sizes	Sizes and prices per product
-orders	Order records
-order_items	Items in each order
-messages	Customer-admin messages
+    Table	                  Purpose
+users	                  Customer and admin accounts
+categories	              Product categories
+products	              Product listings
+product_sizes   	      Sizes and prices per product
+orders	                  Order records
+order_items	              Items in each order
+messages	              Customer-admin messages
 
 ✨ Key Features
 🛒 Shopping Cart & Checkout
