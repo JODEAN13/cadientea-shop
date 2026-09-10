@@ -13,12 +13,11 @@ if (!hash_equals($_SESSION['csrf_token'] ?? '', $submittedToken)) {
     setFlash('error', 'Invalid form submission. Please try again.');
     redirect('login.php');
 }
-// Rotate the token after use
 unset($_SESSION['csrf_token']);
 
 // ── COLLECT & SANITIZE INPUT ────────────────────────────────────────────────
 $email    = sanitize($_POST['email']    ?? '');
-$password = $_POST['password'] ?? ''; // do NOT sanitize — verify raw against hash
+$password = $_POST['password'] ?? '';
 
 // ── VALIDATE FIELDS ─────────────────────────────────────────────────────────
 $errors = validateLoginForm(['email' => $email, 'password' => $password]);
@@ -29,11 +28,10 @@ if (hasErrors($errors)) {
     redirect('login.php');
 }
 
-// ── CHECK CREDENTIALS AGAINST DATABASE ──────────────────────────────────────
+// ── CHECK CREDENTIALS ───────────────────────────────────────────────────────
 $user = getUserByEmail($email);
 
 if (!$user || !password_verify($password, $user['password'])) {
-    // Use a vague error — don't reveal whether the email or password was wrong
     $_SESSION['login_errors'] = [
         'general' => 'Incorrect email or password. Please try again.',
     ];
@@ -41,20 +39,36 @@ if (!$user || !password_verify($password, $user['password'])) {
     redirect('login.php');
 }
 
-// ── SUCCESS — LOG THE USER IN ────────────────────────────────────────────────
+// ── SUCCESS — LOG THE USER IN ───────────────────────────────────────────────
 loginUser($user);
 
-// Get full name for the welcome message
-$fullName = getUserFullName($user);
-setFlash('success', 'Welcome back, ' . htmlspecialchars($fullName) . '! 🧋');
-
-// ── REDIRECT BASED ON USER ROLE ──────────────────────────────────────────────
-// Check if the user is an admin
-if (($user['role'] ?? '') === 'admin') {
-    // Admin goes to admin dashboard
-    redirect('admin/index.php');
-} else {
-    // Customer goes to success page
-    redirect('success.php');
+// ── CHECK FOR PENDING CART (item added before login) ────────────────────────
+if (isset($_SESSION['pending_cart']) && !empty($_SESSION['pending_cart'])) {
+    $pending = $_SESSION['pending_cart'];
+    
+    // Add the pending item to cart
+    addToCart(
+        $pending['product_id'],
+        $pending['product_name'],
+        $pending['size_id'],
+        $pending['size'],
+        $pending['price'],
+        $pending['quantity'] ?? 1
+    );
+    
+    unset($_SESSION['pending_cart']);
+    
+    setFlash('success', 'Welcome back, ' . htmlspecialchars($user['first_name']) . '! 🧋 Your item has been added to your order.');
+    redirect('cart.php');
 }
+
+// ── ADMIN REDIRECT ──────────────────────────────────────────────────────────
+if (($user['role'] ?? '') === 'admin') {
+    setFlash('success', 'Welcome back, ' . htmlspecialchars($user['first_name']) . '! 🛡️');
+    redirect('admin/index.php');
+}
+
+// ── REGULAR CUSTOMER ────────────────────────────────────────────────────────
+setFlash('success', 'Welcome back, ' . htmlspecialchars($user['first_name']) . '! 🧋');
+redirect('success.php');
 ?>

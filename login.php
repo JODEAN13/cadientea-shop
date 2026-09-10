@@ -26,7 +26,6 @@ $flash = getFlash();
             grid-template-columns: 1fr 1fr;
         }
 
-        /* Left decorative panel */
         .login-panel {
             background: linear-gradient(160deg, #f8b5c2 0%, #ec008c 70%, #a30062 100%);
             display: flex;
@@ -79,7 +78,6 @@ $flash = getFlash();
             position: relative; z-index: 1;
         }
 
-        /* Right form panel */
         .login-form-wrap {
             display: flex;
             flex-direction: column;
@@ -104,7 +102,6 @@ $flash = getFlash();
             margin-bottom: 2rem;
         }
 
-        /* Alert boxes */
         .alert {
             padding: 0.85rem 1.1rem;
             border-radius: 0.75rem;
@@ -115,7 +112,6 @@ $flash = getFlash();
         .alert-error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
         .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
 
-        /* Form fields */
         .form-group { margin-bottom: 1.25rem; }
         .form-group label {
             display: block;
@@ -148,7 +144,6 @@ $flash = getFlash();
             margin-top: 0.3rem;
         }
 
-        /* Password wrapper */
         .password-wrap { position: relative; }
         .password-wrap input { padding-right: 3rem; }
         .toggle-pw {
@@ -160,7 +155,6 @@ $flash = getFlash();
         }
         .toggle-pw:hover { color: #ec008c; }
 
-        /* Submit button */
         .btn-login {
             display: block; width: 100%;
             background: #ec008c; color: #fff;
@@ -230,7 +224,6 @@ $flash = getFlash();
             <?php endif; ?>
 
             <?php
-            // Show field errors passed back via session
             $errors = $_SESSION['login_errors'] ?? [];
             $old    = $_SESSION['login_old']    ?? [];
             unset($_SESSION['login_errors'], $_SESSION['login_old']);
@@ -241,7 +234,6 @@ $flash = getFlash();
             <?php endif; ?>
 
             <form action="login_function.php" method="POST" novalidate>
-                <!-- CSRF token -->
                 <?php
                 if (empty($_SESSION['csrf_token'])) {
                     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -292,7 +284,6 @@ $flash = getFlash();
                 <button type="submit" class="btn-login">Sign In 🧋</button>
             </form>
 
-            <!-- Updated: Only "Create Account" link, no redundant "Contact us" -->
             <div class="login-footer">
                 Don't have an account? <a href="register.php">Create Account</a>
             </div>
